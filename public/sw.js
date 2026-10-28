@@ -1,6 +1,6 @@
 // Guarda os arquivos do painel para abrir sem internet.
 // Mude VERSION a cada publicação para os celulares pegarem a versão nova.
-const VERSION = 'v3';
+const VERSION = 'v4';
 const FILES = [
   './',
   'index.html',
@@ -8,6 +8,7 @@ const FILES = [
   'app.js',
   'links.js',
   'spotify.js',
+  'squircle.js',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-180.png',

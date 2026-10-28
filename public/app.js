@@ -1,5 +1,6 @@
 import { NAV_APPS, MUSIC_APPS, navUrl, musicUrl, telUrl, smsUrl, toKmh, pushRecent } from './links.js';
 import * as sp from './spotify.js';
+import { initSquircles } from './squircle.js';
 
 const KEY = 'carpwa:v1';
 const CONTACT_SLOTS = 4;
@@ -551,6 +552,7 @@ function isStandalone() {
 }
 
 tick();
+initSquircles();
 render();
 renderAwake();
 renderPlayer();
