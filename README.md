@@ -12,7 +12,6 @@ PWA para iPhone que vira um painel de carro com o celular na vertical. É HTML, 
 - **Música:** abre o Apple Music, o Spotify, o YouTube Music ou o Deezer.
 - **Telefone e Mensagens:** usam até 4 favoritos. A ligação sai pelo Bluetooth do rádio.
 - **Uso offline:** funciona sem internet depois da primeira visita.
-
 - **Spotify:** mostra o que está tocando, com capa, barra de progresso, ⏮ ⏯ ⏭, modo aleatório e playlists. Controla qualquer aparelho com Spotify aberto, como o app do iPhone.
 
 Tudo fica salvo no próprio aparelho, no `localStorage`.
