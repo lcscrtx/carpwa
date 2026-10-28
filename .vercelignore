@@ -1,0 +1,4 @@
+# Só o site estático vai para a Vercel; o servidor é apenas para desenvolvimento local.
+server.mjs
+scripts/
+tests/
