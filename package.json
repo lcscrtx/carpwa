@@ -1,0 +1,10 @@
+{
+  "name": "carpwa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "icons": "node scripts/make-icons.mjs"
+  }
+}
