@@ -1,6 +1,8 @@
 import { NAV_APPS, MUSIC_APPS, navUrl, musicUrl, telUrl, smsUrl, toKmh, pushRecent } from './links.js';
 import * as sp from './spotify.js';
 import { initSquircles } from './squircle.js';
+import { initYouTube } from './youtube-ui.js';
+import { voiceSupported, listen, voiceErrorMessage } from './voice.js';
 
 const KEY = 'carpwa:v1';
 const CONTACT_SLOTS = 4;
@@ -54,16 +56,59 @@ function initials(name) {
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts.at(-1)[0] : '')).toUpperCase() || '#';
 }
 
-/* Telas: #home (apps), #dash (painel), #music (Spotify), #speed (velocímetro) */
-const VIEWS = ['home', 'dash', 'music', 'speed'];
+/* Telas: #home (apps), #dash (painel), #music (Spotify), #youtube, #speed (velocímetro) */
+const VIEWS = ['home', 'dash', 'music', 'youtube', 'speed'];
+let youtube = null; // controle da tela do YouTube (youtube-ui.js)
 function currentView() {
   const v = location.hash.slice(1);
   return VIEWS.includes(v) ? v : 'home';
 }
 
-function showView() {
+/* Painel e Apps ficam lado a lado no #pager; arrastar troca de página */
+const PAGES = ['dash', 'home'];
+const pager = $('pager');
+
+function pageIndex() {
+  return Math.round(pager.scrollLeft / (pager.clientWidth || 1));
+}
+
+function renderDots(i = pageIndex()) {
+  [...$('dots').children].forEach((dot, n) => dot.classList.toggle('on', n === i));
+}
+
+function scrollToPage(v, behavior) {
+  pager.scrollTo({ left: PAGES.indexOf(v) * pager.clientWidth, behavior });
+  renderDots(PAGES.indexOf(v));
+}
+
+// Ao terminar o arrasto, a página visível vira a tela atual (sem empilhar histórico).
+let scrollTimer;
+pager.addEventListener('scroll', () => {
+  renderDots();
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    const v = PAGES[pageIndex()];
+    if (v && v !== currentView()) {
+      history.replaceState(null, '', `#${v}`);
+      showView({ fromScroll: true });
+    }
+  }, 120);
+}, { passive: true });
+
+// Girar o celular muda a largura da página: reencaixa na atual.
+window.addEventListener('resize', () => {
+  if (!pager.hidden) scrollToPage(currentView(), 'instant');
+});
+
+function showView({ fromScroll = false } = {}) {
   const v = currentView();
-  for (const name of VIEWS) $(`view-${name}`).hidden = name !== v;
+  const paged = PAGES.includes(v);
+  const wasPaged = !pager.hidden;
+  pager.hidden = !paged;
+  $('dots').hidden = !paged;
+  for (const name of VIEWS) if (!PAGES.includes(name)) $(`view-${name}`).hidden = name !== v;
+  // Entre Painel e Apps desliza; vindo de outra tela, já aparece no lugar.
+  if (paged && !fromScroll) scrollToPage(v, wasPaged ? 'smooth' : 'instant');
   // O botão da direita alterna entre a grade de apps e o painel.
   const target = v === 'home' ? 'dash' : 'home';
   const btn = $('home-btn');
@@ -71,13 +116,15 @@ function showView() {
   btn.setAttribute('aria-label', target === 'dash' ? 'Painel' : 'Apps');
   btn.dataset.target = target;
   spSchedule();
+  if (v === 'youtube' || v === 'dash') youtube?.show(v);
+  else youtube?.hide();
 }
 
 function goView(v) {
   if (currentView() !== v) location.hash = v;
 }
 
-window.addEventListener('hashchange', showView);
+window.addEventListener('hashchange', () => showView());
 $('home-btn').addEventListener('click', (e) => goView(e.currentTarget.dataset.target));
 
 /* Relógio */
@@ -104,6 +151,7 @@ function renderIcons() {
     messages: 'messages',
     home: 'home',
     settings: 'settings',
+    youtube: 'youtube',
   };
   for (const el of document.querySelectorAll('[data-icon]')) {
     el.style.setProperty('--ico-img', `url("icons/apps/${icons[el.dataset.icon]}.png")`);
@@ -542,6 +590,34 @@ async function openPlaylists() {
   }
 }
 
+/* Voz nos campos de busca: fala em vez de abrir o teclado, e a busca vai sozinha */
+let voice = null; // { stop } enquanto escuta
+
+for (const btn of document.querySelectorAll('[data-mic-for]')) {
+  btn.hidden = !voiceSupported;
+  btn.addEventListener('click', async () => {
+    if (voice) return voice.stop(); // segundo toque encerra e usa o que ouviu
+    const input = $(btn.dataset.micFor);
+    const placeholder = input.placeholder;
+    input.blur();
+    input.value = '';
+    input.placeholder = 'Ouvindo…';
+    btn.classList.add('listening');
+    const session = listen({ onPartial: (text) => { input.value = text; } });
+    voice = { stop: session.stop };
+    try {
+      input.value = await session.done;
+      input.form.requestSubmit();
+    } catch (e) {
+      toast(voiceErrorMessage(e.message));
+    } finally {
+      voice = null;
+      btn.classList.remove('listening');
+      input.placeholder = placeholder;
+    }
+  });
+}
+
 /* Ações dos ícones (grade, dock e painel) */
 const actions = {
   nav: openNav,
@@ -549,6 +625,7 @@ const actions = {
   'music-view': () => goView('music'),
   'spotify-app': () => open('spotify:'),
   'sp-setup': spConnect,
+  youtube: () => goView('youtube'),
   phone: () => openContacts('tel'),
   messages: () => openContacts('sms'),
   home: () => goSaved('home'),
@@ -573,6 +650,7 @@ function isStandalone() {
 
 tick();
 initSquircles();
+youtube = initYouTube({ state, save, toast, open });
 render();
 renderAwake();
 renderPlayer();

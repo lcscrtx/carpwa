@@ -69,9 +69,15 @@ export function toPx(value, size) {
 const SELECTOR = [
   '.ico', '.dock', '.dock-awake', '.dock-home', '.card', '.dest', '.art',
   '.ctrls button', '.search input', '.primary', '.list', '.group', '.sheet',
+  '.yt-box', '.yt-thumb', '.seg', '.yt-float', '.yt-dash-slot',
 ].join(',');
 // Elementos com borda de 1px: a borda é redesenhada como anel no ::after.
 const RING = '.card, .dock';
+
+// Recalcula na hora (para quando o raio muda sem mudar o tamanho).
+export function refreshSquircle(el) {
+  apply(el);
+}
 
 function apply(el) {
   const w = el.offsetWidth;
