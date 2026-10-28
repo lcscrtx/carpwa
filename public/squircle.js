@@ -66,10 +66,11 @@ export function toPx(value, size) {
 /* Aplicação no DOM */
 
 // Tudo que tem border-radius no style.css (círculos e pílulas ficam de fora: já são curvas).
+// O player do YouTube (.yt-float) fica de fora: clip-path em volta de iframe desloca o vídeo no iPhone.
 const SELECTOR = [
   '.ico', '.dock', '.dock-mic', '.dock-awake', '.dock-home', '.card', '.dest', '.art',
   '.ctrls button', '.search input', '.primary', '.list', '.group', '.sheet',
-  '.yt-box', '.yt-thumb', '.seg', '.yt-float', '.yt-dash-slot',
+  '.yt-box', '.yt-thumb', '.seg', '.yt-dash-slot',
 ].join(',');
 // Elementos com borda de 1px: a borda é redesenhada como anel no ::after.
 const RING = '.card, .dock';

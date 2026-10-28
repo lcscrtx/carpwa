@@ -3,7 +3,7 @@ import * as sp from './spotify.js';
 import { initSquircles } from './squircle.js';
 import { initYouTube } from './youtube-ui.js';
 import { voiceSupported, listen, voiceErrorMessage } from './voice.js';
-import { DEFAULT_POS, distanceM, wazeMapUrl, fetchWeather, timeAgo, walkUrl } from './place.js';
+import { DEFAULT_POS, distanceM, mapTiles, fetchWeather, timeAgo, walkUrl } from './place.js';
 import { parseCommand, findContact } from './assistant.js';
 
 const KEY = 'carpwa:v1';
@@ -449,7 +449,8 @@ function startGps() {
 $('gauge').addEventListener('click', startGps);
 
 /* Mapa e clima do Painel: seguem a posição do GPS (sem GPS, a última conhecida ou São Paulo) */
-const MAP_MOVE_M = 1000; // recarregar o mapa a cada pouco pisca; só quando andar 1 km
+const MAP_MOVE_M = 60; // redesenha o mapa a cada 60 m (os tiles ficam no cache do navegador)
+const MAP_ZOOM = 16;
 const WEATHER_EVERY = 15 * 60_000;
 let mapPos = null;
 let weatherPos = null;
@@ -464,10 +465,38 @@ function onPosition(p) {
   }
   if (!mapPos || distanceM(mapPos, p) > MAP_MOVE_M) {
     mapPos = p;
-    $('map-frame').src = wazeMapUrl(p);
+    renderMap();
   }
   if (Date.now() - weatherAt > WEATHER_EVERY || (weatherPos && distanceM(weatherPos, p) > 10_000)) refreshWeather(p);
 }
+
+// Desenha os tiles em volta da posição; o ponto azul fica um pouco acima do meio,
+// porque os botões de Casa e Trabalho cobrem a parte de baixo do card.
+let mapKey = '';
+function renderMap() {
+  const el = $('map');
+  const w = el.offsetWidth;
+  const h = el.offsetHeight;
+  if (!mapPos || !w || !h) return;
+  const cy = Math.round(h * 0.3);
+  const key = `${mapPos.lat},${mapPos.lon},${w},${h}`;
+  if (key === mapKey) return;
+  mapKey = key;
+  const imgs = mapTiles(mapPos, MAP_ZOOM, w, h, w / 2, cy).map((t) => {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = t.url;
+    img.style.left = `${t.left}px`;
+    img.style.top = `${t.top}px`;
+    return img;
+  });
+  const dot = document.createElement('i');
+  dot.className = 'map-dot';
+  dot.style.left = `${w / 2}px`;
+  dot.style.top = `${cy}px`;
+  el.replaceChildren(...imgs, dot);
+}
+new ResizeObserver(() => renderMap()).observe($('map'));
 
 async function refreshWeather(p) {
   weatherAt = Date.now();

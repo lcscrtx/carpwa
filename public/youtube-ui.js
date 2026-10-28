@@ -1,6 +1,5 @@
 // Tela do YouTube: busca, favoritos e player.
 import * as yt from './youtube.js';
-import { refreshSquircle } from './squircle.js';
 
 const MAX_FAVES = 30;
 
@@ -50,9 +49,10 @@ export function initYouTube({ state, save, toast, open, onChange = () => {} }) {
     const base = float.offsetParent.getBoundingClientRect();
     const w = s.offsetWidth;
     const h = s.offsetHeight;
+    // Pixels inteiros: frações deixam uma linha do fundo aparecendo no iPhone.
     Object.assign(float.style, {
-      left: `${r.left - base.left}px`,
-      top: `${r.top - base.top}px`,
+      left: `${Math.round(r.left - base.left)}px`,
+      top: `${Math.round(r.top - base.top)}px`,
       width: `${w}px`,
       height: `${h}px`,
     });
@@ -61,11 +61,8 @@ export function initYouTube({ state, save, toast, open, onChange = () => {} }) {
     // Mesmos cantos do espaço onde está (card do Painel ou caixa da tela do YouTube).
     const radius = getComputedStyle(s).borderTopLeftRadius;
     const inDash = view === 'dash';
-    if (float.style.borderRadius !== radius || float.classList.contains('in-dash') !== inDash) {
-      float.style.borderRadius = radius;
-      float.classList.toggle('in-dash', inDash);
-      refreshSquircle(float);
-    }
+    float.style.borderRadius = radius;
+    float.classList.toggle('in-dash', inDash);
   }
 
   // As telas entram com animação; acompanha o espaço até ela terminar.

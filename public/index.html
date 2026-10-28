@@ -53,9 +53,10 @@
         <!-- Painel com widgets -->
         <section class="view page" id="view-dash" aria-label="Painel">
           <div class="widgets">
-            <!-- Mapa ao vivo (Waze) com os destinos por cima; o mapa não recebe toques -->
+            <!-- Mapa ao vivo com os destinos por cima; o mapa não recebe toques -->
             <article class="card places">
-              <iframe class="map-frame" id="map-frame" title="Mapa" tabindex="-1" aria-hidden="true"></iframe>
+              <div class="map" id="map" aria-hidden="true"></div>
+              <small class="map-credit">© OpenStreetMap</small>
               <div class="map-shade"></div>
               <div class="round-row">
                 <button class="round" data-action="home" type="button"><span class="round-ico c-blue"><svg><use href="#i-home"/></svg></span><b>Casa</b><small id="home-label">Definir</small></button>
@@ -190,7 +191,7 @@
           </div>
           <div class="yt-side">
             <form class="search" id="yt-form">
-              <input id="yt-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Buscar no YouTube ou colar link">
+              <input id="yt-q" type="search" enterkeyhint="search" autocomplete="off" placeholder="Buscar ou colar link">
               <button class="mic" data-mic-for="yt-q" type="button" aria-label="Falar a busca"><svg><use href="#i-mic"/></svg></button>
               <button class="primary" type="submit">Buscar</button>
             </form>

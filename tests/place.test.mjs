@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { distanceM, wazeMapUrl, describeWeather, parseWeather, timeAgo, walkUrl } from '../public/place.js';
+import { distanceM, tileXY, tileUrl, mapTiles, describeWeather, parseWeather, timeAgo, walkUrl } from '../public/place.js';
 
 test('distanceM', () => {
   assert.equal(Math.round(distanceM({ lat: 0, lon: 0 }, { lat: 0, lon: 0 })), 0);
@@ -8,8 +8,20 @@ test('distanceM', () => {
   assert.ok(d > 2400 && d < 2700, String(d));
 });
 
-test('wazeMapUrl', () => {
-  assert.equal(wazeMapUrl({ lat: -23.55051, lon: -46.633312 }), 'https://embed.waze.com/iframe?zoom=15&lat=-23.55051&lon=-46.63331&pin=1');
+test('tileXY e tileUrl', () => {
+  const { x, y } = tileXY({ lat: 0, lon: 0 }, 1);
+  assert.equal(x, 1);
+  assert.ok(Math.abs(y - 1) < 1e-9);
+  assert.equal(tileUrl(0, 0, 0), 'https://tile.openstreetmap.org/0/0/0.png');
+  assert.equal(tileUrl(-1, 0, 1), 'https://tile.openstreetmap.org/1/1/0.png');
+});
+
+test('mapTiles cobre a área toda', () => {
+  const tiles = mapTiles({ lat: -23.5505, lon: -46.6333 }, 15, 400, 200);
+  assert.ok(tiles.length >= 2 && tiles.length <= 9);
+  for (const t of tiles) assert.match(t.url, /openstreetmap\.org\/15\//);
+  assert.ok(tiles.some((t) => t.left <= 0 && t.top <= 0));
+  assert.ok(tiles.some((t) => t.left + 256 >= 400 && t.top + 256 >= 200));
 });
 
 test('describeWeather', () => {

@@ -1,4 +1,4 @@
-// Localização, clima e mapa: funções puras + chamadas sem chave (Open-Meteo e Waze).
+// Localização, clima e mapa: funções puras + chamadas sem chave (Open-Meteo e OpenStreetMap).
 
 // Centro padrão quando ainda não há GPS (Praça da Sé, São Paulo).
 export const DEFAULT_POS = { lat: -23.5505, lon: -46.6333 };
@@ -13,9 +13,39 @@ export function distanceM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// Mapa ao vivo do Waze (sem chave). O card não recebe toques: arrastar troca de página.
-export function wazeMapUrl({ lat, lon }, zoom = 15) {
-  return `https://embed.waze.com/iframe?zoom=${zoom}&lat=${lat.toFixed(5)}&lon=${lon.toFixed(5)}&pin=1`;
+// Mapa próprio feito de quadradinhos (tiles) do OpenStreetMap, sem chave (o tema escuro vem do CSS).
+// O embed do Waze não abria no iPhone; imagens simples carregam em qualquer lugar.
+export const TILE = 256;
+
+// Posição em "tiles" (com fração) no zoom z, projeção Web Mercator.
+export function tileXY({ lat, lon }, z) {
+  const n = 2 ** z;
+  const r = (lat * Math.PI) / 180;
+  return {
+    x: ((lon + 180) / 360) * n,
+    y: ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n,
+  };
+}
+
+export function tileUrl(x, y, z) {
+  const n = 2 ** z;
+  const tx = ((x % n) + n) % n; // dá a volta no mundo
+  return `https://tile.openstreetmap.org/${z}/${tx}/${y}.png`;
+}
+
+// Tiles que cobrem uma área w×h com o ponto p em (cx, cy). Cada item traz a posição em px.
+export function mapTiles(p, z, w, h, cx = w / 2, cy = h / 2) {
+  const { x, y } = tileXY(p, z);
+  const px = x * TILE - cx;
+  const py = y * TILE - cy;
+  const tiles = [];
+  for (let ty = Math.floor(py / TILE); ty * TILE < py + h; ty++) {
+    if (ty < 0 || ty >= 2 ** z) continue;
+    for (let tx = Math.floor(px / TILE); tx * TILE < px + w; tx++) {
+      tiles.push({ url: tileUrl(tx, ty, z), left: Math.round(tx * TILE - px), top: Math.round(ty * TILE - py) });
+    }
+  }
+  return tiles;
 }
 
 // Códigos WMO do Open-Meteo → texto curto e emoji.
