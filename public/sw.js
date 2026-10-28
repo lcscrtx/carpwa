@@ -1,6 +1,6 @@
 // Guarda os arquivos do painel para abrir sem internet.
 // Mude VERSION a cada publicação para os celulares pegarem a versão nova.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const FILES = [
   './',
   'index.html',
@@ -14,6 +14,17 @@ const FILES = [
   'icons/icon-180.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
+  'icons/apps/waze.png',
+  'icons/apps/maps.png',
+  'icons/apps/gmaps.png',
+  'icons/apps/music.png',
+  'icons/apps/spotify.png',
+  'icons/apps/ytmusic.png',
+  'icons/apps/deezer.png',
+  'icons/apps/phone.png',
+  'icons/apps/messages.png',
+  'icons/apps/home.png',
+  'icons/apps/settings.png',
 ];
 
 self.addEventListener('install', (e) => {

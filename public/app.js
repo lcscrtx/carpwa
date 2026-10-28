@@ -92,8 +92,28 @@ function tick() {
   setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
 }
 
+/* Ícones reais dos apps, em icons/apps/<nome>.png */
+const NAV_ICONS = { waze: 'waze', apple: 'maps', google: 'gmaps' };
+const MUSIC_ICONS = { apple: 'music', spotify: 'spotify', youtube: 'ytmusic', deezer: 'deezer' };
+
+function renderIcons() {
+  const icons = {
+    nav: NAV_ICONS[state.navApp] ?? 'waze',
+    music: sp.isConnected() ? 'spotify' : MUSIC_ICONS[state.musicApp] ?? 'music',
+    phone: 'phone',
+    messages: 'messages',
+    home: 'home',
+    settings: 'settings',
+  };
+  for (const el of document.querySelectorAll('[data-icon]')) {
+    el.style.setProperty('--ico-img', `url("icons/apps/${icons[el.dataset.icon]}.png")`);
+    el.classList.add('has-img');
+  }
+}
+
 /* Textos que dependem dos ajustes */
 function render() {
+  renderIcons();
   $('nav-app-name').textContent = NAV_APPS[state.navApp]?.name ?? 'Waze';
   $('music-app-name').textContent = sp.isConnected() ? 'Spotify' : MUSIC_APPS[state.musicApp]?.name ?? 'Música';
   const connected = sp.isConnected();

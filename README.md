@@ -45,3 +45,7 @@ O GPS, o modo offline e a instalação exigem **HTTPS**. Publique a pasta em um 
 2. Toque em Compartilhar → Adicionar à Tela de Início.
 
 A cada publicação, mude `VERSION` em `public/sw.js`.
+
+## Ícones
+
+Os ícones dos apps em `public/icons/apps/` vêm de [macosicons.com](https://macosicons.com/), feitos pela comunidade (Waze: isakw, Mapas: D.Empire412, Google Maps: james.harden, Música: Crakitus, Spotify, YouTube Music: woozy, Deezer: hadrien, Telefone, Mensagens e Ajustes: octaviotti, Casa: xerus). As marcas pertencem aos seus donos; uso pessoal.
