@@ -28,6 +28,16 @@ export function initYouTube({ state, save, toast, open, onChange = () => {} }) {
     return null;
   }
 
+  // No iPhone o YouTube não refaz o enquadramento quando o iframe muda só pelo CSS
+  // (o vídeo ficava deslocado e cortado). setSize obriga o player a recalcular.
+  let playerSize = '';
+  function resizePlayer(w, h) {
+    const key = `${w}x${h}`;
+    if (!w || !h || key === playerSize || !player?.setSize) return;
+    playerSize = key;
+    player.setSize(w, h);
+  }
+
   function place() {
     const s = slot();
     if (!s || !s.offsetWidth) {
@@ -35,15 +45,19 @@ export function initYouTube({ state, save, toast, open, onChange = () => {} }) {
       return;
     }
     // Coordenadas relativas à área das telas (.views), que corta o que passar dela.
+    // O tamanho vem do layout (offsetWidth), não do retângulo, que encolhe na animação de entrada.
     const r = s.getBoundingClientRect();
     const base = float.offsetParent.getBoundingClientRect();
+    const w = s.offsetWidth;
+    const h = s.offsetHeight;
     Object.assign(float.style, {
       left: `${r.left - base.left}px`,
       top: `${r.top - base.top}px`,
-      width: `${r.width}px`,
-      height: `${r.height}px`,
+      width: `${w}px`,
+      height: `${h}px`,
     });
     float.classList.add('on');
+    resizePlayer(w, h);
     // Mesmos cantos do espaço onde está (card do Painel ou caixa da tela do YouTube).
     const radius = getComputedStyle(s).borderTopLeftRadius;
     const inDash = view === 'dash';
@@ -103,13 +117,22 @@ export function initYouTube({ state, save, toast, open, onChange = () => {} }) {
     playerReady ??= yt.loadPlayerApi().then(
       (YT) =>
         new Promise((resolve) => {
+          // Nasce com o tamanho da caixa do vídeo (a camada ainda está escondida e sem tamanho).
+          const box = $('yt-box');
+          const w = box.offsetWidth || 640;
+          const h = box.offsetHeight || 360;
+          playerSize = `${w}x${h}`;
           player = new YT.Player('yt-player', {
-            width: '100%',
-            height: '100%',
+            width: String(w),
+            height: String(h),
             // Sem os controles pequenos do YouTube: usamos toque no vídeo e botões grandes.
             playerVars: { playsinline: 1, rel: 0, controls: 0, fs: 0, disablekb: 1, iv_load_policy: 3, origin: location.origin },
             events: {
-              onReady: () => resolve(player),
+              onReady: () => {
+                resolve(player);
+                playerSize = '';
+                place(); // ajusta ao espaço real assim que o player existe
+              },
               onStateChange: onPlayerState,
               onError: (e) => toast(yt.playerErrorMessage(e.data)),
             },

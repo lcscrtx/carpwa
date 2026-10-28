@@ -1,6 +1,6 @@
 // Guarda os arquivos do painel para abrir sem internet.
 // Mude VERSION a cada publicação para os celulares pegarem a versão nova.
-const VERSION = 'v9';
+const VERSION = 'v10';
 const FILES = [
   './',
   'index.html',
