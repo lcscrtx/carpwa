@@ -41,6 +41,7 @@
     <symbol id="i-back10" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4v3.2h3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15.4" text-anchor="middle" font-size="8" font-weight="700" font-family="system-ui, sans-serif" fill="currentColor">10</text></symbol>
     <symbol id="i-fwd10" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v3.2h-3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="12" y="15.4" text-anchor="middle" font-size="8" font-weight="700" font-family="system-ui, sans-serif" fill="currentColor">10</text></symbol>
     <symbol id="i-mic" viewBox="0 0 24 24"><rect x="8.5" y="2.5" width="7" height="12.5" rx="3.5" fill="currentColor"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="M6.6 5.2A2 2 0 0 1 8.5 4h7a2 2 0 0 1 1.9 1.2L19 9.5h.5A1.5 1.5 0 0 1 21 11v5.5a1 1 0 0 1-1 1h-.5V19a1 1 0 0 1-1 1h-1.5a1 1 0 0 1-1-1v-1.5H8V19a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1v-1.5H4a1 1 0 0 1-1-1V11a1.5 1.5 0 0 1 1.5-1.5H5l1.6-4.3ZM7.2 9.5h9.6l-1.1-3.1a.6.6 0 0 0-.6-.4H8.9a.6.6 0 0 0-.6.4L7.2 9.5ZM6.5 15a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" fill="currentColor"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
     <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </svg>
@@ -52,18 +53,21 @@
         <!-- Painel com widgets -->
         <section class="view page" id="view-dash" aria-label="Painel">
           <div class="widgets">
+            <!-- Mapa ao vivo (Waze) com os destinos por cima; o mapa não recebe toques -->
             <article class="card places">
-              <span class="card-label">Destinos</span>
+              <iframe class="map-frame" id="map-frame" title="Mapa" tabindex="-1" aria-hidden="true"></iframe>
+              <div class="map-shade"></div>
               <div class="round-row">
                 <button class="round" data-action="home" type="button"><span class="round-ico c-blue"><svg><use href="#i-home"/></svg></span><b>Casa</b><small id="home-label">Definir</small></button>
                 <button class="round" data-action="work" type="button"><span class="round-ico c-orange"><svg><use href="#i-work"/></svg></span><b>Trabalho</b><small id="work-label">Definir</small></button>
+                <button class="round" data-action="nav" type="button"><span class="round-ico c-gray"><svg><use href="#i-nav"/></svg></span><b>Buscar</b><small>Destino</small></button>
               </div>
-              <button class="dest" data-action="nav" type="button"><span class="ico sm c-gray"><svg><use href="#i-nav"/></svg></span><span class="dest-text"><b>Buscar</b><small>Endereço ou lugar</small></span><svg class="chev"><use href="#i-chev"/></svg></button>
             </article>
             <div class="upper">
               <article class="card hello">
                 <div class="hello-time" id="dash-time">--:--</div>
                 <div class="hello-date" id="dash-date"></div>
+                <div class="weather" id="weather" hidden></div>
               </article>
               <button class="card mini-speed" data-action="speed" type="button">
                 <span class="card-label">Velocidade</span>
@@ -85,7 +89,19 @@
                   <button data-sp="next" type="button" aria-label="Próxima"><svg><use href="#i-next"/></svg></button>
                 </div>
               </div>
-              <div class="sp-off" data-sp-disconnected>
+              <!-- YouTube no mesmo card quando o Spotify não está tocando -->
+            <div class="mini-np" id="yt-mini" hidden>
+              <button class="mini-np-main" data-action="youtube" type="button">
+                <span class="art yt-mini-art"><svg><use href="#i-play"/></svg><img alt="" id="yt-mini-img"></span>
+                <span class="mini-np-text"><b id="yt-mini-title"></b><small id="yt-mini-channel">YouTube</small></span>
+              </button>
+              <div class="ctrls">
+                <button data-ytc="back" type="button" aria-label="Voltar 10 segundos"><svg><use href="#i-back10"/></svg></button>
+                <button class="sp-toggle" id="yt-mini-toggle" data-ytc="toggle" type="button" aria-label="Tocar"><svg><use href="#i-play"/></svg></button>
+                <button data-ytc="fwd" type="button" aria-label="Avançar 10 segundos"><svg><use href="#i-fwd10"/></svg></button>
+              </div>
+            </div>
+            <div class="sp-off" data-sp-disconnected>
                 <p class="empty">Conecte o Spotify para ver e controlar o que está tocando.</p>
                 <button class="pill" data-action="sp-setup" type="button">Conectar Spotify</button>
               </div>
@@ -111,12 +127,17 @@
             <button class="app" data-action="home" type="button"><span class="ico c-teal" data-icon="home"><svg><use href="#i-home"/></svg></span><span class="name">Casa</span></button>
             <button class="app" data-action="work" type="button"><span class="ico c-orange"><svg><use href="#i-work"/></svg></span><span class="name">Trabalho</span></button>
             <button class="app" data-action="speed" type="button"><span class="ico c-red"><svg><use href="#i-gauge"/></svg></span><span class="name">Velocidade</span></button>
-            <button class="app" data-action="dash" type="button"><span class="ico c-indigo"><svg><use href="#i-dash"/></svg></span><span class="name">Painel</span></button>
+            <button class="app" data-action="park" type="button"><span class="ico c-indigo"><svg><use href="#i-car"/></svg></span><span class="name">Meu carro</span></button>
             <button class="app" data-action="settings" type="button"><span class="ico c-gray" data-icon="settings"><svg><use href="#i-gear"/></svg></span><span class="name">Ajustes</span></button>
           </div>
         </section>
+
+        <!-- Segunda página de apps: os extras ligados em Ajustes -->
+        <section class="view page" id="view-home2" aria-label="Mais apps" hidden>
+          <div class="apps" id="extra-apps"></div>
+        </section>
       </div>
-      <div class="dots" id="dots" aria-hidden="true"><i></i><i></i></div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
 
       <!-- Tocando agora (Spotify) -->
       <section class="view" id="view-music" aria-label="Tocando" hidden>
@@ -215,6 +236,7 @@
       <button class="dock-app" data-action="nav" type="button" aria-label="Navegar"><span class="ico c-blue" data-icon="nav"><svg><use href="#i-nav"/></svg></span></button>
       <button class="dock-app" data-action="music" type="button" aria-label="Música"><span class="ico c-pink" data-icon="music"><svg><use href="#i-music"/></svg></span></button>
       <button class="dock-app" data-action="phone" type="button" aria-label="Telefone"><span class="ico c-green" data-icon="phone"><svg><use href="#i-phone"/></svg></span></button>
+      <button class="dock-mic" id="assist-btn" type="button" aria-label="Assistente de voz"><svg><use href="#i-mic"/></svg></button>
       <button class="dock-awake" id="awake" type="button" aria-pressed="false" aria-label="Manter tela acesa"><svg><use href="#i-sun"/></svg></button>
       <button class="dock-home" id="home-btn" type="button" aria-label="Painel"><svg><use href="#i-dash"/></svg></button>
     </nav>
@@ -271,6 +293,8 @@
       </div>
       <p class="group-title">Contatos favoritos</p>
       <div class="group" id="contact-fields"></div>
+      <p class="group-title">Apps extras (2ª página)</p>
+      <div class="group" id="extra-fields"></div>
       <p class="group-title" id="sp-group">Spotify</p>
       <div class="group">
         <div class="field-row">
@@ -283,6 +307,19 @@
     </form>
   </dialog>
 
+  <dialog class="sheet" id="park-sheet">
+    <form method="dialog" class="sheet-head">
+      <h2>Meu carro</h2>
+      <button class="icon-btn" aria-label="Fechar"><svg><use href="#i-close"/></svg></button>
+    </form>
+    <p class="park-info" id="park-info"></p>
+    <div class="park-actions">
+      <button class="primary wide" id="park-walk" type="button">Rota a pé até o carro</button>
+      <button class="primary wide" id="park-save" type="button">Estacionei aqui</button>
+      <button class="pill" id="park-clear" type="button">Apagar local salvo</button>
+    </div>
+  </dialog>
+
   <dialog class="sheet" id="lists-sheet">
     <form method="dialog" class="sheet-head">
       <h2>Playlists</h2>
@@ -290,6 +327,12 @@
     </form>
     <ul class="list" id="playlist-list"></ul>
   </dialog>
+
+  <!-- Assistente de voz: bolha estilo Siri com o que foi ouvido e a resposta -->
+  <button class="assistant" id="assistant" type="button" hidden aria-live="polite">
+    <span class="orb"></span>
+    <span class="assistant-text"><b id="assistant-heard">Ouvindo…</b><small id="assistant-reply">Ex.: "toca Legião no YouTube", "navegar para casa"</small></span>
+  </button>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

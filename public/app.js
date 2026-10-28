@@ -3,6 +3,8 @@ import * as sp from './spotify.js';
 import { initSquircles } from './squircle.js';
 import { initYouTube } from './youtube-ui.js';
 import { voiceSupported, listen, voiceErrorMessage } from './voice.js';
+import { DEFAULT_POS, distanceM, wazeMapUrl, fetchWeather, timeAgo, walkUrl } from './place.js';
+import { parseCommand, findContact } from './assistant.js';
 
 const KEY = 'carpwa:v1';
 const CONTACT_SLOTS = 4;
@@ -56,29 +58,37 @@ function initials(name) {
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts.at(-1)[0] : '')).toUpperCase() || '#';
 }
 
-/* Telas: #home (apps), #dash (painel), #music (Spotify), #youtube, #speed (velocímetro) */
-const VIEWS = ['home', 'dash', 'music', 'youtube', 'speed'];
+/* Telas: #home e #home2 (apps), #dash (painel), #music (Spotify), #youtube, #speed (velocímetro) */
+const VIEWS = ['home', 'home2', 'dash', 'music', 'youtube', 'speed'];
 let youtube = null; // controle da tela do YouTube (youtube-ui.js)
 function currentView() {
   const v = location.hash.slice(1);
+  if (v === 'home2' && !pages().includes('home2')) return 'home';
   return VIEWS.includes(v) ? v : 'home';
 }
 
-/* Painel e Apps ficam lado a lado no #pager; arrastar troca de página */
-const PAGES = ['dash', 'home'];
+/* Painel e Apps ficam lado a lado no #pager; arrastar troca de página.
+   A 2ª página de apps só existe com algum app extra ligado em Ajustes. */
 const pager = $('pager');
+
+function pages() {
+  return state.extraApps?.length ? ['dash', 'home', 'home2'] : ['dash', 'home'];
+}
 
 function pageIndex() {
   return Math.round(pager.scrollLeft / (pager.clientWidth || 1));
 }
 
 function renderDots(i = pageIndex()) {
-  [...$('dots').children].forEach((dot, n) => dot.classList.toggle('on', n === i));
+  const dots = $('dots');
+  while (dots.children.length < pages().length) dots.append(document.createElement('i'));
+  while (dots.children.length > pages().length) dots.lastChild.remove();
+  [...dots.children].forEach((dot, n) => dot.classList.toggle('on', n === i));
 }
 
 function scrollToPage(v, behavior) {
-  pager.scrollTo({ left: PAGES.indexOf(v) * pager.clientWidth, behavior });
-  renderDots(PAGES.indexOf(v));
+  pager.scrollTo({ left: pages().indexOf(v) * pager.clientWidth, behavior });
+  renderDots(pages().indexOf(v));
 }
 
 // Ao terminar o arrasto, a página visível vira a tela atual (sem empilhar histórico).
@@ -87,7 +97,7 @@ pager.addEventListener('scroll', () => {
   renderDots();
   clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => {
-    const v = PAGES[pageIndex()];
+    const v = pages()[pageIndex()];
     if (v && v !== currentView()) {
       history.replaceState(null, '', `#${v}`);
       showView({ fromScroll: true });
@@ -102,15 +112,16 @@ window.addEventListener('resize', () => {
 
 function showView({ fromScroll = false } = {}) {
   const v = currentView();
-  const paged = PAGES.includes(v);
+  const paged = pages().includes(v);
   const wasPaged = !pager.hidden;
   pager.hidden = !paged;
   $('dots').hidden = !paged;
-  for (const name of VIEWS) if (!PAGES.includes(name)) $(`view-${name}`).hidden = name !== v;
+  $('view-home2').hidden = !pages().includes('home2');
+  for (const name of VIEWS) if (!['dash', 'home', 'home2'].includes(name)) $(`view-${name}`).hidden = name !== v;
   // Entre Painel e Apps desliza; vindo de outra tela, já aparece no lugar.
   if (paged && !fromScroll) scrollToPage(v, wasPaged ? 'smooth' : 'instant');
   // O botão da direita alterna entre a grade de apps e o painel.
-  const target = v === 'home' ? 'dash' : 'home';
+  const target = v === 'home' || v === 'home2' ? 'dash' : 'home';
   const btn = $('home-btn');
   btn.innerHTML = `<svg><use href="#i-${target === 'dash' ? 'dash' : 'grid'}"/></svg>`;
   btn.setAttribute('aria-label', target === 'dash' ? 'Painel' : 'Apps');
@@ -137,6 +148,38 @@ function tick() {
   $('dash-time').textContent = time;
   $('dash-date').textContent = dateFmt.format(now);
   setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
+}
+
+/* Apps extras (2ª página): abrem o app nativo pelo esquema de URL */
+const EXTRA_APPS = [
+  { id: 'whatsapp', name: 'WhatsApp', url: 'whatsapp://', icon: 'whatsapp' },
+  { id: 'uber', name: 'Uber', url: 'uber://', icon: 'uber' },
+  { id: '99', name: '99', url: 'taxis99://', text: '99', color: 'c-yellow' },
+  { id: 'ifood', name: 'iFood', url: 'ifood://', text: 'iFood', color: 'c-red' },
+  { id: 'instagram', name: 'Instagram', url: 'instagram://', icon: 'instagram' },
+];
+
+function renderExtras() {
+  const grid = $('extra-apps');
+  grid.replaceChildren();
+  for (const app of EXTRA_APPS.filter((a) => state.extraApps?.includes(a.id))) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'app';
+    b.dataset.url = app.url;
+    b.innerHTML = '<span class="ico"></span><span class="name"></span>';
+    const ico = b.firstChild;
+    if (app.icon) {
+      ico.style.setProperty('--ico-img', `url("icons/apps/${app.icon}.png")`);
+      ico.classList.add('has-img');
+    } else {
+      ico.classList.add(app.color, 'ico-text');
+      ico.classList.toggle('long', app.text.length > 3);
+      ico.textContent = app.text;
+    }
+    b.lastChild.textContent = app.name;
+    grid.append(b);
+  }
 }
 
 /* Ícones reais dos apps, em icons/apps/<nome>.png */
@@ -167,6 +210,7 @@ function render() {
   const connected = sp.isConnected();
   for (const el of document.querySelectorAll('[data-sp-connected]')) el.hidden = !connected;
   for (const el of document.querySelectorAll('[data-sp-disconnected]')) el.hidden = connected;
+  renderMusicCard();
   $('home-label').textContent = state.home || 'Definir';
   $('work-label').textContent = state.work || 'Definir';
 
@@ -278,6 +322,18 @@ function openSettings(focus) {
 
   renderSpotifySettings();
 
+  const extras = $('extra-fields');
+  extras.replaceChildren();
+  for (const app of EXTRA_APPS) {
+    const row = document.createElement('label');
+    row.className = 'switch-row';
+    row.innerHTML = '<span></span><input type="checkbox" class="switch">';
+    row.firstChild.textContent = app.name;
+    row.lastChild.name = `extra-${app.id}`;
+    row.lastChild.checked = Boolean(state.extraApps?.includes(app.id));
+    extras.append(row);
+  }
+
   $('install-note').textContent = isStandalone()
     ? 'Instalado na Tela de Início.'
     : 'Para tela cheia no iPhone: no Safari, toque em Compartilhar → Adicionar à Tela de Início.';
@@ -332,9 +388,12 @@ $('settings-form').addEventListener('submit', (e) => {
     home: f.home.value.trim(),
     work: f.work.value.trim(),
     contacts,
+    extraApps: EXTRA_APPS.filter((a) => f[`extra-${a.id}`].checked).map((a) => a.id),
   });
   save();
   render();
+  renderExtras();
+  showView();
   $('settings-sheet').close();
   toast('Ajustes salvos');
 });
@@ -367,6 +426,7 @@ function startGps() {
       const kmh = toKmh(pos.coords.speed);
       setSpeed(kmh ?? 0);
       setGpsStatus(`GPS ativo · precisão ${Math.round(pos.coords.accuracy)} m`, true);
+      onPosition({ lat: pos.coords.latitude, lon: pos.coords.longitude });
     },
     (err) => {
       navigator.geolocation.clearWatch(watchId);
@@ -387,6 +447,44 @@ function startGps() {
 }
 
 $('gauge').addEventListener('click', startGps);
+
+/* Mapa e clima do Painel: seguem a posição do GPS (sem GPS, a última conhecida ou São Paulo) */
+const MAP_MOVE_M = 1000; // recarregar o mapa a cada pouco pisca; só quando andar 1 km
+const WEATHER_EVERY = 15 * 60_000;
+let mapPos = null;
+let weatherPos = null;
+let weatherAt = 0;
+let posSavedAt = 0;
+
+function onPosition(p) {
+  state.lastPos = p;
+  if (Date.now() - posSavedAt > 60_000) {
+    posSavedAt = Date.now();
+    save();
+  }
+  if (!mapPos || distanceM(mapPos, p) > MAP_MOVE_M) {
+    mapPos = p;
+    $('map-frame').src = wazeMapUrl(p);
+  }
+  if (Date.now() - weatherAt > WEATHER_EVERY || (weatherPos && distanceM(weatherPos, p) > 10_000)) refreshWeather(p);
+}
+
+async function refreshWeather(p) {
+  weatherAt = Date.now();
+  weatherPos = p;
+  try {
+    const w = await fetchWeather(p);
+    if (!w) return;
+    const el = $('weather');
+    el.innerHTML = `${w.icon} <b></b> <span></span> <small></small>`;
+    el.querySelector('b').textContent = `${w.temp}°`;
+    el.querySelector('span').textContent = w.label;
+    el.querySelector('small').textContent = `${w.max}° / ${w.min}°`;
+    el.hidden = false;
+  } catch {
+    weatherAt = Date.now() - WEATHER_EVERY + 60_000; // tenta de novo em 1 min
+  }
+}
 
 /* Manter tela acesa (Screen Wake Lock) */
 let lock = null;
@@ -477,7 +575,34 @@ function renderPlayer() {
   });
   setAll('.sp-shuffle', (el) => el.setAttribute('aria-pressed', String(Boolean(s?.shuffle))));
   renderProgress();
+  renderMusicCard();
 }
+
+// Card "Tocando" do Painel: Spotify quando está tocando; senão, o vídeo do YouTube (se houver).
+function renderMusicCard() {
+  const v = youtube?.current;
+  const showYt = Boolean(v?.id || v?.title) && !(sp.isConnected() && spPlayer?.isPlaying);
+  const card = document.querySelector('.music-card');
+  $('yt-mini').hidden = !showYt;
+  for (const el of card.querySelectorAll('[data-sp-connected]')) el.hidden = showYt || !sp.isConnected();
+  for (const el of card.querySelectorAll('[data-sp-disconnected]')) el.hidden = showYt || sp.isConnected();
+  if (!showYt) return;
+  $('yt-mini-title').textContent = v.title || 'Vídeo do YouTube';
+  $('yt-mini-channel').textContent = v.channel || 'YouTube';
+  const img = $('yt-mini-img');
+  const thumb = v.thumb || (v.id ? `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg` : '');
+  if (thumb && img.getAttribute('src') !== thumb) img.src = thumb;
+  img.hidden = !thumb;
+  $('yt-mini-toggle').innerHTML = `<svg><use href="#i-${youtube.playing ? 'pause' : 'play'}"/></svg>`;
+  $('yt-mini-toggle').setAttribute('aria-label', youtube.playing ? 'Pausar' : 'Tocar');
+}
+
+document.querySelector('.music-card').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ytc]');
+  if (!b || !youtube) return;
+  if (b.dataset.ytc === 'toggle') youtube.toggle();
+  else youtube.seekBy(b.dataset.ytc === 'back' ? -10 : 10);
+});
 
 async function spRefresh() {
   if (!sp.isConnected()) return;
@@ -590,6 +715,60 @@ async function openPlaylists() {
   }
 }
 
+/* Meu carro: guarda onde estacionou e traça a rota a pé até lá */
+function currentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator) || !window.isSecureContext) return reject(new Error('sem GPS'));
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      reject,
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 12_000 },
+    );
+  });
+}
+
+function renderPark() {
+  const p = state.parked;
+  const info = $('park-info');
+  if (p) {
+    const far = state.lastPos ? distanceM(state.lastPos, p) : null;
+    const dist = far == null ? '' : far < 1000 ? ` · a ${Math.round(far / 10) * 10} m daqui` : ` · a ${(far / 1000).toFixed(1)} km daqui`;
+    info.textContent = `Local salvo ${timeAgo(p.t)}${dist}.`;
+  } else {
+    info.textContent = 'Nenhum local salvo. Ao estacionar, toque em "Estacionei aqui".';
+  }
+  $('park-walk').hidden = !p;
+  $('park-clear').hidden = !p;
+  $('park-save').classList.toggle('secondary', Boolean(p));
+}
+
+function openPark() {
+  renderPark();
+  $('park-sheet').showModal();
+}
+
+async function savePark() {
+  toast('Pegando a localização…');
+  try {
+    const p = await currentPosition();
+    state.parked = { ...p, t: Date.now() };
+  } catch {
+    if (!state.lastPos) return toast('Não consegui a localização. Libere o GPS e tente de novo');
+    state.parked = { ...state.lastPos, t: Date.now() };
+  }
+  save();
+  renderPark();
+  toast('Local do carro salvo');
+}
+
+$('park-save').addEventListener('click', savePark);
+$('park-walk').addEventListener('click', () => state.parked && open(walkUrl(state.parked)));
+$('park-clear').addEventListener('click', () => {
+  state.parked = null;
+  save();
+  renderPark();
+});
+
 /* Voz nos campos de busca: fala em vez de abrir o teclado, e a busca vai sozinha */
 let voice = null; // { stop } enquanto escuta
 
@@ -618,6 +797,120 @@ for (const btn of document.querySelectorAll('[data-mic-for]')) {
   });
 }
 
+/* Assistente de voz (🎤 do dock): ouve, entende e executa, com a bolha estilo Siri */
+let assistTimer;
+let assistSession = null;
+
+function assistShow(heard, reply, { keep = false } = {}) {
+  clearTimeout(assistTimer);
+  $('assistant').hidden = false;
+  $('assistant-heard').textContent = heard;
+  $('assistant-reply').textContent = reply;
+  if (!keep) assistTimer = setTimeout(() => { $('assistant').hidden = true; }, 3200);
+}
+
+async function runCommand(text) {
+  const cmd = parseCommand(text);
+  const say = (reply) => assistShow(`“${text}”`, reply);
+  const ytActive = Boolean(youtube?.current);
+  switch (cmd.type) {
+    case 'pause':
+      if (ytActive && youtube.playing) youtube.pause();
+      else if (sp.isConnected()) await sp.pause();
+      return say('Pausado');
+    case 'resume':
+      if (ytActive) youtube.resume();
+      else if (sp.isConnected()) await sp.play();
+      return say('Tocando');
+    case 'next':
+      await sp.next();
+      setTimeout(spRefresh, 700);
+      return say('Próxima');
+    case 'prev':
+      await sp.previous();
+      setTimeout(spRefresh, 700);
+      return say('Anterior');
+    case 'youtube': {
+      goView('youtube');
+      say(`Procurando “${cmd.query}” no YouTube…`);
+      const title = await youtube.searchAndPlay(cmd.query);
+      return say(title ? `Tocando ${title}` : 'Nenhum vídeo encontrado');
+    }
+    case 'music': {
+      if (sp.isConnected()) {
+        try {
+          const hit = await sp.searchPlayable(cmd.query);
+          if (hit) {
+            await sp.play(hit.body);
+            setTimeout(spRefresh, 900);
+            return say(`Tocando ${hit.name} no Spotify`);
+          }
+        } catch (e) {
+          if (e.reason === 'NO_ACTIVE_DEVICE' || e.status === 404) return say(spErrorMessage(e));
+          // Busca do Spotify indisponível: cai para o YouTube.
+        }
+      }
+      goView('youtube');
+      const title = await youtube.searchAndPlay(cmd.query);
+      return say(title ? `Tocando ${title} no YouTube` : 'Não encontrei');
+    }
+    case 'nav':
+      if (cmd.saved) {
+        if (!state[cmd.saved]) return say(`Defina o endereço de ${cmd.saved === 'home' ? 'casa' : 'trabalho'} em Ajustes`);
+        say(`Navegando para ${cmd.saved === 'home' ? 'casa' : 'o trabalho'}`);
+        return goSaved(cmd.saved);
+      }
+      say(`Navegando para ${cmd.to}`);
+      return go(cmd.to);
+    case 'call':
+    case 'sms': {
+      const c = findContact(state.contacts, cmd.name);
+      if (!c) return say(`Não achei “${cmd.name}” nos favoritos`);
+      say(cmd.type === 'call' ? `Ligando para ${c.name}` : `Mensagem para ${c.name}`);
+      return open(cmd.type === 'call' ? telUrl(c.phone) : smsUrl(c.phone));
+    }
+    case 'parkSave':
+      await savePark();
+      return say('Local do carro salvo');
+    case 'parkFind':
+      if (!state.parked) return say('Nenhum local salvo');
+      say('Abrindo a rota a pé até o carro');
+      return open(walkUrl(state.parked));
+    case 'open':
+      if (cmd.view === 'settings') openSettings();
+      else goView(cmd.view);
+      return say('Pronto');
+    default:
+      return say('Não entendi. Tente “toca … no YouTube” ou “navegar para casa”');
+  }
+}
+
+$('assist-btn').addEventListener('click', async () => {
+  if (!voiceSupported) return toast('Este navegador não reconhece voz');
+  if (assistSession) return assistSession.stop();
+  $('assist-btn').classList.add('listening');
+  assistShow('Ouvindo…', 'Ex.: “toca Legião no YouTube”, “navegar para casa”', { keep: true });
+  assistSession = listen({ onPartial: (t) => assistShow(t, '…', { keep: true }) });
+  try {
+    const text = await assistSession.done;
+    assistSession = null;
+    $('assist-btn').classList.remove('listening');
+    await runCommand(text);
+  } catch (e) {
+    assistSession = null;
+    $('assist-btn').classList.remove('listening');
+    const known = ['no-speech', 'not-allowed', 'service-not-allowed', 'audio-capture', 'network', 'unsupported'];
+    const msg = e instanceof sp.SpotifyError ? spErrorMessage(e) : known.includes(e.message) ? voiceErrorMessage(e.message) : e.message;
+    assistShow('Ops', msg || 'Algo deu errado');
+  }
+});
+
+// Tocar na bolha encerra a escuta ou fecha a bolha.
+$('assistant').addEventListener('click', () => {
+  if (assistSession) assistSession.stop();
+  else $('assistant').hidden = true;
+});
+
 /* Ações dos ícones (grade, dock e painel) */
 const actions = {
   nav: openNav,
@@ -626,6 +919,7 @@ const actions = {
   'spotify-app': () => open('spotify:'),
   'sp-setup': spConnect,
   youtube: () => goView('youtube'),
+  park: openPark,
   phone: () => openContacts('tel'),
   messages: () => openContacts('sms'),
   home: () => goSaved('home'),
@@ -637,6 +931,8 @@ const actions = {
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-action]');
   if (el) actions[el.dataset.action]?.();
+  const ext = e.target.closest('[data-url]');
+  if (ext) open(ext.dataset.url);
 });
 
 // Fecha as folhas ao tocar fora delas.
@@ -650,7 +946,8 @@ function isStandalone() {
 
 tick();
 initSquircles();
-youtube = initYouTube({ state, save, toast, open });
+youtube = initYouTube({ state, save, toast, open, onChange: () => renderMusicCard() });
+renderExtras();
 render();
 renderAwake();
 renderPlayer();
@@ -666,6 +963,8 @@ sp.handleRedirect().then((result) => {
     toast(result.slice('error:'.length));
   }
 });
-if (state.gps) startGps();
+// Mapa e clima já aparecem com a última posição; o GPS liga sozinho (no carro, ele é a base de tudo).
+onPosition(state.lastPos ?? DEFAULT_POS);
+if (window.isSecureContext && 'geolocation' in navigator) startGps();
 if (state.awake) acquireLock();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

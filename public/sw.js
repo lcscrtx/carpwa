@@ -1,6 +1,6 @@
 // Guarda os arquivos do painel para abrir sem internet.
 // Mude VERSION a cada publicação para os celulares pegarem a versão nova.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const FILES = [
   './',
   'index.html',
@@ -12,6 +12,8 @@ const FILES = [
   'youtube.js',
   'youtube-ui.js',
   'voice.js',
+  'place.js',
+  'assistant.js',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-180.png',
@@ -29,6 +31,9 @@ const FILES = [
   'icons/apps/home.png',
   'icons/apps/settings.png',
   'icons/apps/youtube.png',
+  'icons/apps/whatsapp.png',
+  'icons/apps/uber.png',
+  'icons/apps/instagram.png',
 ];
 
 self.addEventListener('install', (e) => {

@@ -4,7 +4,7 @@ import { refreshSquircle } from './squircle.js';
 
 const MAX_FAVES = 30;
 
-export function initYouTube({ state, save, toast, open }) {
+export function initYouTube({ state, save, toast, open, onChange = () => {} }) {
   const $ = (id) => document.getElementById(id);
   state.ytFaves ??= [];
 
@@ -131,6 +131,7 @@ export function initYouTube({ state, save, toast, open }) {
   function renderToggle() {
     $('yt-toggle').innerHTML = `<svg><use href="#i-${playing ? 'pause' : 'play'}"/></svg>`;
     $('yt-toggle').setAttribute('aria-label', playing ? 'Pausar' : 'Tocar');
+    onChange();
   }
 
   function renderProgress() {
@@ -227,6 +228,7 @@ export function initYouTube({ state, save, toast, open }) {
   }
 
   function renderNow() {
+    onChange();
     $('yt-now').hidden = !current;
     if (!current) return;
     $('yt-title').textContent = current.title || 'Carregando…';
@@ -358,6 +360,39 @@ export function initYouTube({ state, save, toast, open }) {
       view = null;
       pause();
       place();
+    },
+    // Para o assistente de voz e o card "Tocando".
+    get playing() {
+      return playing;
+    },
+    get current() {
+      return current;
+    },
+    pause,
+    toggle,
+    seekBy,
+    resume() {
+      player?.playVideo?.();
+    },
+    // Busca e toca o primeiro resultado. Retorna o título ou lança YouTubeError.
+    async searchAndPlay(query) {
+      tab = 'results';
+      $('yt-q').value = query;
+      status = 'Buscando…';
+      renderList();
+      try {
+        results = await yt.search(query);
+      } catch (e) {
+        results = [];
+        status = searchErrorMessage(e);
+        renderList();
+        throw new Error(status);
+      }
+      status = results.length ? '' : 'Nenhum vídeo encontrado.';
+      renderList();
+      if (!results.length) return null;
+      play(results[0]);
+      return results[0].title;
     },
   };
 }

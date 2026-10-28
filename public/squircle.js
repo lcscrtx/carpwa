@@ -67,7 +67,7 @@ export function toPx(value, size) {
 
 // Tudo que tem border-radius no style.css (círculos e pílulas ficam de fora: já são curvas).
 const SELECTOR = [
-  '.ico', '.dock', '.dock-awake', '.dock-home', '.card', '.dest', '.art',
+  '.ico', '.dock', '.dock-mic', '.dock-awake', '.dock-home', '.card', '.dest', '.art',
   '.ctrls button', '.search input', '.primary', '.list', '.group', '.sheet',
   '.yt-box', '.yt-thumb', '.seg', '.yt-float', '.yt-dash-slot',
 ].join(',');

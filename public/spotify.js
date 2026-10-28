@@ -204,6 +204,20 @@ export const next = () => api('/me/player/next', { method: 'POST' });
 export const previous = () => api('/me/player/previous', { method: 'POST' });
 export const setShuffle = (on) => api(`/me/player/shuffle?state=${on}`, { method: 'PUT' });
 
+// Busca para o assistente de voz: playlist se a frase pedir, senão a música mais relevante.
+export async function searchPlayable(query) {
+  const wantsList = /\bplaylist\b/i.test(query);
+  const q = query.replace(/\bplaylist\b/i, '').trim() || query;
+  const type = wantsList ? 'playlist' : 'track';
+  const data = await api(`/search?${new URLSearchParams({ q, type, limit: '5', market: 'from_token' })}`);
+  if (wantsList) {
+    const pl = data?.playlists?.items?.find(Boolean);
+    return pl ? { body: { context_uri: pl.uri }, name: pl.name } : null;
+  }
+  const tr = data?.tracks?.items?.find(Boolean);
+  return tr ? { body: { uris: [tr.uri] }, name: `${tr.name} – ${tr.artists?.[0]?.name ?? ''}` } : null;
+}
+
 // Toca (ou retoma). Sem aparelho ativo, tenta acordar o primeiro disponível.
 export async function play(body) {
   try {

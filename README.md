@@ -48,4 +48,4 @@ A cada publicação, mude `VERSION` em `public/sw.js`.
 
 ## Ícones
 
-Os ícones dos apps em `public/icons/apps/` vêm de [macosicons.com](https://macosicons.com/), feitos pela comunidade (Waze: isakw, Mapas: D.Empire412, Google Maps: james.harden, Música: Crakitus, Spotify, YouTube Music: woozy, Deezer: hadrien, Telefone, Mensagens e Ajustes: octaviotti, Casa: xerus). As marcas pertencem aos seus donos; uso pessoal.
+Os ícones dos apps em `public/icons/apps/` vêm de [macosicons.com](https://macosicons.com/), feitos pela comunidade (Waze: isakw, Mapas: D.Empire412, Google Maps: james.harden, Música: Crakitus, Spotify, YouTube: vladlucha, YouTube Music: woozy, Deezer: hadrien, Telefone, Mensagens e Ajustes: octaviotti, Casa: xerus, além de WhatsApp, Uber e Instagram). As marcas pertencem aos seus donos; uso pessoal.
