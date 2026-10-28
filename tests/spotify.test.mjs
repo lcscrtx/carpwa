@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { base64url, redirectUri, authUrl, formatTime, parsePlayer, SCOPES } from '../spotify.js';
+import { base64url, redirectUri, authUrl, formatTime, parsePlayer, SCOPES } from '../public/spotify.js';
 
 test('base64url sem padding e sem + /', () => {
   assert.equal(base64url(new Uint8Array([251, 255, 191])), '-_-_');

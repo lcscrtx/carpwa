@@ -19,7 +19,7 @@ Tudo fica salvo no próprio aparelho, no `localStorage`.
 
 ## Conectar o Spotify
 
-Exige conta Premium. O app usa Authorization Code com PKCE, então não precisa de client secret. O Client ID do app "Painel do Carro" já vem fixo em `spotify.js` (`CLIENT_ID`); basta tocar em **Conectar Spotify** e entrar na conta.
+Exige conta Premium. O app usa Authorization Code com PKCE, então não precisa de client secret. O Client ID do app "Painel do Carro" já vem fixo em `public/spotify.js` (`CLIENT_ID`); basta tocar em **Conectar Spotify** e entrar na conta.
 
 Cada endereço do painel precisa estar nas Redirect URIs do app em [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard):
 
@@ -45,4 +45,4 @@ O GPS, o modo offline e a instalação exigem **HTTPS**. Publique a pasta em um 
 1. Abra o endereço no Safari.
 2. Toque em Compartilhar → Adicionar à Tela de Início.
 
-A cada publicação, mude `VERSION` em `sw.js`.
+A cada publicação, mude `VERSION` em `public/sw.js`.

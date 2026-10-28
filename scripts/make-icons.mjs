@@ -1,5 +1,5 @@
 // Gera os PNGs do ícone (o iPhone não aceita SVG em apple-touch-icon).
-// Desenha o mesmo volante de icons/icon.svg, sem dependências. Uso: npm run icons
+// Desenha o mesmo volante de public/icons/icon.svg, sem dependências. Uso: npm run icons
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
@@ -69,7 +69,7 @@ function png(size, raw) {
   ]);
 }
 
-const out = new URL('../icons/', import.meta.url);
+const out = new URL('../public/icons/', import.meta.url);
 mkdirSync(out, { recursive: true });
 for (const size of [180, 192, 512]) {
   writeFileSync(new URL(`icon-${size}.png`, out), render(size));

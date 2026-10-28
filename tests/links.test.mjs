@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { navUrl, musicUrl, cleanPhone, telUrl, smsUrl, toKmh, pushRecent } from '../links.js';
+import { navUrl, musicUrl, cleanPhone, telUrl, smsUrl, toKmh, pushRecent } from '../public/links.js';
 
 test('navUrl monta rota em cada app', () => {
   assert.equal(navUrl('waze', 'Av. Paulista, 1000'), 'waze://?q=Av.%20Paulista%2C%201000&navigate=yes');
